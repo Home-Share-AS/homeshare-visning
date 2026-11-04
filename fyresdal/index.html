@@ -288,7 +288,7 @@ function row(u){
    '<div class="det">'+galleryHTML(u.n)+
    '<div class="drow"><span class="ic">'+I.price+'</span><div><div class="dl">Price excl. VAT</div><div class="price">'+PRICE+' NOK <small>per bedroom per night</small></div><div class="dl">About '+month.toLocaleString("nb-NO")+' NOK per bedroom per month</div></div></div>'+
    '<div class="drow"><span class="ic">'+I.incl+'</span><div><div class="dl">Included in the price</div><div class="chips">'+chips+'</div></div></div>'+
-   '<div class="drow '+(u.sewer?'ok':'warn')+'"><span class="ic">'+I.toilet+'</span><div><div class="dl">Toilet</div><div class="dv">'+(u.sewer?'Connected to sewer or septic tank':'Not connected to sewer')+'</div><div class="dl">'+u.toilet+'</div>'+(u.sewer?'':'<div class="fee">An additional 750 NOK excl. VAT is invoiced per cleaning visit for '+u.fee+'.</div>')+'</div></div>'+
+   '<div class="drow '+(u.sewer?'ok':'warn')+'"><span class="ic">'+I.toilet+'</span><div><div class="dl">Toilet</div><div class="dv">'+(u.sewer?'Connected to sewer or septic tank':'Not connected to sewer')+'</div><div class="dl">'+u.toilet+'</div>'+(u.sewer?'':'<div class="fee">Toilet servicing ('+u.fee+') and laundry are offered at a separate fixed price per bedroom per night.</div>')+'</div></div>'+
    '<div class="drow"><span class="ic">'+I.laundry+'</span><div><div class="dl">Laundry</div><div class="dv">'+u.laundry+'</div></div></div>'+
    '</div>';
   wireGallery(d,u.n);
