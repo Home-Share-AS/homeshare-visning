@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Housing around the Fyresdal site</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F5F6F3;--surface:#fff;--ink:#18241E;--muted:#5E6A63;--line:#D9DED8;--spruce:#1F3A2E;--pin:#D7263D;--pin-soft:#F6D3D8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding:64px 20px 48px}
+header{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:end;margin-bottom:24px}
+@media (max-width:960px){header{grid-template-columns:1fr}}
+h1{font-size:clamp(28px,4vw,44px);line-height:1.05;font-weight:800;letter-spacing:-.02em;margin:0;max-width:16ch}
+.intro{color:var(--muted);max-width:none;margin:12px 0 0}
+.badge{text-align:right;color:var(--muted);font-size:14px}
+.badge strong{display:block;color:var(--ink);font-size:30px;font-weight:800;line-height:1}
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:960px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+#map{height:min(78vh,760px);min-height:460px;width:100%}
+.mapbar{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.mapbar .lg{display:flex;flex-wrap:wrap;gap:14px}
+.mapbar span{display:inline-flex;align-items:center;gap:7px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--pin)}
+.dot.h{background:#fff;border:2.5px solid var(--pin)}
+.sq{width:11px;height:11px;background:var(--spruce);transform:rotate(45deg)}
+button{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+.list h2,.cars h2{font-size:18px;font-weight:700;margin:0;padding:16px 18px 6px}
+.sub{font-size:14px;font-weight:600;color:var(--muted);padding:14px 18px 2px}
+.item{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:start;padding:12px 18px;border-top:1px solid var(--line);cursor:pointer;transition:background .15s}
+.item:hover,.item.on{background:#F1F3EF}
+.num{width:26px;height:26px;border-radius:50%;background:var(--pin);color:#fff;font-weight:700;font-size:13px;display:grid;place-items:center}
+.num.h{background:#fff;color:var(--pin);border:2px solid var(--pin)}
+.addr{font-weight:600}
+.meta{color:var(--muted);font-size:14px}
+.time{font-weight:800;font-size:20px;white-space:nowrap;text-align:right}
+.time small{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+.flag{display:inline-block;margin-top:4px;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--pin-soft)}
+.cars{margin-top:20px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px;min-width:620px}
+th,td{text-align:left;padding:12px 18px;border-top:1px solid var(--line);vertical-align:top}
+th{font-size:13px;color:var(--muted);font-weight:600;border-top:0}
+td.n{font-weight:700;white-space:nowrap}
+tfoot td{font-weight:700}
+.note{color:var(--muted);font-size:13px;margin:16px 2px 0;max-width:85ch}
+/* map pins */
+.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pin);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);display:grid;place-items:center}
+.pin b{transform:rotate(45deg);color:#fff;font:700 13px "Archivo",sans-serif}
+.pin.h{background:#fff;border:3px solid var(--pin)}
+.pin.h b{color:var(--pin)}
+.pin.on{outline:3px solid #FFD54A;outline-offset:2px}
+.site{width:26px;height:26px;background:var(--spruce);border:3px solid #fff;transform:rotate(45deg);box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.leaflet-tooltip.tt{font-family:"Archivo",sans-serif;border:0;border-radius:10px;padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.tt .a{font-weight:700;font-size:14px}
+.tt .t{font-weight:800;font-size:22px;color:var(--pin);line-height:1.1;margin-top:2px}
+.tt .m{color:var(--muted);font-size:12px}
+.lbl{background:transparent;border:0;box-shadow:none;color:#fff;font:700 13px "Archivo",sans-serif;text-shadow:0 1px 3px #000,0 0 6px #000}
+.lbl::before{display:none}
+.det{grid-column:2 / 4;display:none;margin-top:10px;padding:14px;border-radius:12px;background:#F1F3EF;font-size:14px}
+.item.open .det{display:block}
+.drow{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--line)}
+.drow:first-child{border-top:0;padding-top:0}
+.ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--surface);color:var(--spruce)}
+.ic svg{width:17px;height:17px}
+.dl{font-size:12px;color:var(--muted);font-weight:500}
+.dv{font-weight:600}
+.price{font-size:18px;font-weight:800}
+.price small{font-weight:500;font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:99px;background:var(--surface);border:1px solid var(--line);font-size:12.5px;font-weight:600}
+.chip svg{width:14px;height:14px;color:var(--spruce)}
+.ok .ic{color:#2E7D4F;background:#E3F1E8}.ok .dv{color:#2E7D4F}
+.warn .ic{color:#B4532A;background:#F8E6DC}.warn .dv{color:#B4532A}
+.more{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:13.5px;font-weight:700;color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px}
+.more svg{width:14px;height:14px;transition:transform .2s}
+.item.open .more svg{transform:rotate(180deg)}
+.fee{margin-top:6px;padding:6px 10px;border-radius:8px;background:#FBEFE8;color:#8A3B17;font-size:12.5px;font-weight:600}
+.time{display:grid;grid-template-columns:auto auto;column-gap:10px;align-items:center}
+.time small{grid-column:1}
+.tchev{grid-row:1 / 3;grid-column:2;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);color:var(--ink)}
+.tchev svg{width:16px;height:16px;transition:transform .2s}
+.item:hover .tchev{border-color:var(--ink)}
+.item.open .tchev svg{transform:rotate(180deg)}
+.gal{position:relative;border-radius:10px;overflow:hidden;background:#dfe3dd;aspect-ratio:3/2;margin-bottom:12px}
+.gal img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.gnav{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.92);display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3);padding:0}
+.gnav svg{width:18px;height:18px}
+.gnav.l{left:8px}.gnav.r{right:8px}
+.gcap{position:absolute;left:8px;bottom:8px;padding:3px 9px;border-radius:99px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:600}
+.gcount{position:absolute;right:8px;bottom:8px;padding:3px 9px;border-radius:99px;background:rgba(0,0,0,.6);color:#fff;font-size:12px}
+.lb{position:fixed;inset:0;z-index:5000;background:rgba(10,14,12,.92);display:none;align-items:center;justify-content:center}
+.lb.on{display:flex}
+.lb img{max-width:92vw;max-height:84vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.lb .gnav{width:48px;height:48px}
+.lb .gnav.l{left:20px}.lb .gnav.r{right:20px}
+.lb .x{position:absolute;top:18px;right:20px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font-size:22px;font-weight:700;cursor:pointer}
+.lb .lbcap{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#fff;font-size:15px;font-weight:600}
+.inv{margin-top:20px;padding:20px}
+.invhead{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start}
+.invic{width:44px;height:44px;border-radius:12px;background:#E9EFEA;color:var(--spruce);display:grid;place-items:center}
+.invic svg{width:24px;height:24px}
+.inv h2{font-size:18px;margin:0 0 4px;font-weight:700}
+.inv p{margin:0;color:var(--muted);max-width:75ch}
+.invcats{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0 58px}
+.invcats span{padding:5px 11px;border-radius:99px;background:#F1F3EF;border:1px solid var(--line);font-size:13px;font-weight:600}
+.invbtns{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 0 58px}
+button.primary{background:var(--spruce);color:#fff;border-color:var(--spruce);padding:9px 16px;font-size:14px}
+button.primary:hover{opacity:.92}
+.invbox{background:var(--surface);width:min(760px,94vw);max-height:88vh;border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+.invtop{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.invtop h3{margin:0;font-size:18px}
+.x2{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:20px;font-weight:700;padding:0}
+.invbody{overflow:auto;padding:4px 20px 20px}
+.invbody h4{margin:18px 0 6px;font-size:15px;color:var(--spruce)}
+.invbody table{min-width:0;font-size:14px}
+.invbody td{padding:7px 0;border-top:1px solid var(--line)}
+.invbody td:last-child{text-align:right;color:var(--muted);white-space:nowrap;padding-left:16px}
+@media (max-width:600px){.invcats,.invbtns{margin-left:0}}
+.mline{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:14px;margin-top:3px}
+.mline svg{width:15px;height:15px;color:var(--spruce);flex:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Housing around the Fyresdal site</h1>
+      <p class="intro">Map of every cabin and house in our offer. Hover over a pin or an address to see the drive time and the route along the road. Click an address to zoom in and see price, what is included and the toilet type. Drive times are measured in Google Maps from the site entrance.</p>
+    </div>
+    <div class="badge"><strong>20 beds</strong>in 7 units</div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <div id="map" aria-label="Interactive satellite map"></div>
+      <div class="mapbar">
+        <div class="lg">
+          <span><i class="sq"></i>Project site</span>
+          <span><i class="dot"></i>Unit in our offer</span>
+        </div>
+        <button id="all" type="button">Show all</button>
+      </div>
+    </section>
+    <section class="panel list">
+      <h2>Units in our offer</h2>
+      <div id="c"></div>
+    </section>
+  </div>
+
+  <section class="panel cars">
+    <h2>Suggested rental cars</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Area</th><th>Units</th><th>Beds</th><th>Drive to site</th><th>Suggested vehicles</th></tr></thead>
+      <tbody>
+        <tr><td class="n">Birtedalen</td><td>Solliåsvegen 101, Solliåsen 11, Fjellheimvegen 48, Åsen 14</td><td>12</td><td>30 to 32 min</td><td>1 nine-seat van and 1 five-seat car. The cabins are within about 2 km of each other, so one shared pick-up route works.</td></tr>
+        <tr><td class="n">Kilegrend</td><td>Granheim and Sjøbui, same yard</td><td>5</td><td>30 min</td><td>1 seven-seat car</td></tr>
+        <tr><td class="n">Åmdals Verk</td><td>Skafsåvegen 1271, from 01.03.2027</td><td>3</td><td>30 min</td><td>1 five-seat car</td></tr>
+      </tbody>
+      <tfoot><tr><td>Total</td><td>7 units</td><td>20</td><td></td><td>4 vehicles</td></tr></tfoot>
+    </table></div>
+  </section>
+
+  <section class="panel inv" aria-label="Furnishing and inventory">
+    <div class="invhead">
+      <div class="invic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M3 13a2 2 0 0 1 4 0v2h10v-2a2 2 0 0 1 4 0v5H3z"/><path d="M5 18v2M19 18v2"/></svg></div>
+      <div>
+        <h2>Fully furnished to one standard</h2>
+        <p>Every unit is furnished and equipped to the same standard, set out in our inventory list, which forms part of each lease. Everything on the list is in place at move-in, and if anything is missing, HomeShare makes sure it is provided.</p>
+      </div>
+    </div>
+    <div class="invbtns">
+      <button type="button" class="primary" id="invopen">View the full inventory list</button>
+    </div>
+  </section>
+  <p class="note">Final selection is made after the viewings on 05.11.2026. Satellite imagery: Esri, Maxar, Earthstar Geographics. Routes: OpenStreetMap and OSRM.</p>
+</div>
+
+<div class="lb" id="invm" role="dialog" aria-modal="true" aria-label="Inventory list"><div class="invbox"><div class="invtop"><h3>Inventory list, standard for all properties</h3><button class="x2" id="invx" type="button" aria-label="Close">&times;</button></div><div class="invbody" id="invbody"></div></div></div>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Photo viewer"><button class="x" id="lbx" type="button" aria-label="Close">&times;</button><button class="gnav l" id="lbp" type="button" aria-label="Previous photo"></button><img id="lbimg" alt=""><button class="gnav r" id="lbn" type="button" aria-label="Next photo"></button><div class="lbcap" id="lbcap"></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+var site={lat:59.203254,lon:8.075895};
+var units=[
+ {n:1,addr:"Solliåsvegen 101",area:"Birtedalen",lat:59.0454,lon:7.9638,beds:3,baths:1,min:30,st:"c",toilet:"Flushing toilet",sewer:true,laundry:"Combined washer and dryer"},
+ {n:2,addr:"Solliåsen 11",area:"Birtedalen",lat:59.0475,lon:7.9690,beds:5,baths:2,min:30,st:"c",toilet:"Flushing toilet in both bathrooms",sewer:true,laundry:"Washing machine and dryer"},
+ {n:3,addr:"Fjellheimvegen 48",area:"Birtevann",lat:59.0643,lon:7.9580,beds:2,baths:1,min:31,st:"c",toilet:"Vacuum composting toilet, emptied by the cleaning service",sewer:false,fee:"cleaning the toilet and emptying the compost",laundry:"No washing machine, laundry handled by the cleaning service"},
+ {n:4,addr:"Åsen 14",area:"Øvre Birtedalen",lat:59.0572,lon:7.9628,beds:2,baths:1,min:32,st:"c",flag:"Available until 05.02.2027",toilet:"Incinerating toilet, serviced by the cleaning service",sewer:false,fee:"cleaning the toilet and emptying the ash",laundry:"No washing machine, laundry handled by the cleaning service"},
+ {n:5,addr:"Granheim, Fyresdalsvegen 4909",area:"Kilegrend",lat:59.0157,lon:8.2733,beds:3,baths:1,min:30,st:"c",toilet:"Flushing toilet",sewer:true,laundry:"Combined washer and dryer, dishwasher"},
+ {n:6,addr:"Sjøbui, Fyresdalsvegen 4909",area:"Kilegrend",lat:59.0155,lon:8.2742,beds:2,baths:1,min:30,st:"c",toilet:"Flushing toilet",sewer:true,laundry:"Washing machine installed before move-in"},
+ {n:7,addr:"Skafsåvegen 1271",area:"Åmdals Verk",lat:59.37999,lon:8.039097,beds:3,baths:1,min:30,st:"c",flag:"Available from 01.03.2027",toilet:"Flushing toilet with private septic tank",sewer:true,laundry:"Washing machine"}
+];
+var map=L.map("map",{scrollWheelZoom:true});
+var sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imagery &copy; Esri, Maxar, Earthstar Geographics"});
+var labels=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19});
+var roads=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",{maxZoom:19});
+var osm=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Map &copy; Esri, HERE, Garmin, OpenStreetMap contributors"});
+var satGroup=L.layerGroup([sat,roads,labels]);
+osm.addTo(map);
+L.control.layers({"Satellite":satGroup,"Map":osm},null,{collapsed:false}).addTo(map);
+L.control.scale({metric:true,imperial:false}).addTo(map);
+
+var siteIcon=L.divIcon({className:"",html:'<div class="site"></div>',iconSize:[26,26],iconAnchor:[13,13]});
+L.marker([site.lat,site.lon],{icon:siteIcon,zIndexOffset:1000}).addTo(map)
+ .bindTooltip('<div class="a">Project site</div><div class="m">EdgeConneX, Birtedalsvegen, Fyresdal</div>',{className:"tt",direction:"top",offset:[0,-14]});
+L.marker([site.lat,site.lon],{icon:L.divIcon({className:"",iconSize:[0,0]})}).addTo(map).bindTooltip("Project site",{permanent:true,className:"lbl",direction:"right",offset:[16,0]});
+
+var markers={};
+var routeCache={},routeLayer=null,routeFor=null;
+function drawRoute(coords){
+  hideRoute();
+  routeLayer=L.layerGroup([
+    L.polyline(coords,{color:"#ffffff",weight:8,opacity:.9,interactive:false}),
+    L.polyline(coords,{color:"#D7263D",weight:4.5,opacity:1,interactive:false})
+  ]).addTo(map);
+}
+function hideRoute(){if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}routeFor=null;}
+function showRoute(u){
+  routeFor=u.n;
+  if(routeCache[u.n]){drawRoute(routeCache[u.n]);return;}
+  var url="https://router.project-osrm.org/route/v1/driving/"+site.lon+","+site.lat+";"+u.lon+","+u.lat+"?overview=full&geometries=geojson";
+  fetch(url).then(function(r){return r.json();}).then(function(j){
+    var c=j.routes[0].geometry.coordinates.map(function(p){return [p[1],p[0]];});
+    routeCache[u.n]=c;
+    if(routeFor===u.n)drawRoute(c);
+  }).catch(function(){
+    var c=[[site.lat,site.lon],[u.lat,u.lon]];routeCache[u.n]=c;
+    if(routeFor===u.n)drawRoute(c);
+  });
+}
+function tip(u){return '<div class="a">'+u.addr+'</div><div class="t">'+u.min+' min drive</div><div class="m">'+u.area+', '+u.beds+' bedrooms, '+u.baths+' bathroom'+(u.baths>1?'s':'')+(u.flag?'<br>'+u.flag:'')+''+'</div>';}
+units.forEach(function(u){
+  var ic=L.divIcon({className:"",html:'<div class="pin'+(u.st==="p"?' h':'')+'" id="pin'+u.n+'"><b>'+u.n+'</b></div>',iconSize:[30,30],iconAnchor:[15,30],tooltipAnchor:[0,-30]});
+  var m=L.marker([u.lat,u.lon],{icon:ic,riseOnHover:true}).addTo(map).bindTooltip(tip(u),{className:"tt",direction:"top"});
+  m.on("mouseover",function(){showRoute(u);});
+  m.on("mouseout",function(){hideRoute();});
+  m.on("click",function(){map.flyTo([u.lat,u.lon],16,{duration:.8});});
+  markers[u.n]=m;
+});
+var bounds=L.latLngBounds([[site.lat,site.lon]].concat(units.map(function(u){return [u.lat,u.lon];})));
+map.fitBounds(bounds,{padding:[30,30]});
+document.getElementById("all").onclick=function(){map.flyToBounds(bounds,{padding:[30,30],duration:.8});};
+
+var GALLERY={"1": [{"l": "Exterior", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1122256326590928449/original/9b26beb7-8347-40df-8cac-99a0cbe16544.jpeg"}, {"l": "Living room", "u": "https://a0.muscache.com/im/pictures/miso/Hosting-1122256326590928449/original/fccb28b1-44ac-4408-87af-244ca98b4ee4.jpeg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-U3RheVN1cHBseUxpc3Rpbmc6MTEyMjI1NjMyNjU5MDkyODQ0OQ%3D%3D/original/b7a61001-15a8-440a-b946-2610fc24f740.jpeg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-U3RheVN1cHBseUxpc3Rpbmc6MTEyMjI1NjMyNjU5MDkyODQ0OQ%3D%3D/original/08eb29be-d03a-4061-9fb9-55701575d9b4.jpeg"}, {"l": "Bedroom 1", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-U3RheVN1cHBseUxpc3Rpbmc6MTEyMjI1NjMyNjU5MDkyODQ0OQ%3D%3D/original/1d93c894-e3fc-4552-8a9b-07514b39fc70.jpeg"}, {"l": "Bedroom 2", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-U3RheVN1cHBseUxpc3Rpbmc6MTEyMjI1NjMyNjU5MDkyODQ0OQ%3D%3D/original/344fd76e-0c19-46e8-8039-20bf21d1d795.jpeg"}, {"l": "Bedroom 3", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1122256326590928449/original/48af7bd2-9861-410c-baa7-295ec3fe0563.jpeg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1122256326590928449/original/109ac342-83ba-4940-86d9-733b8f7ff732.jpeg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1122256326590928449/original/f00b58d8-0b49-43ad-8463-22cdf8b8c6fb.jpeg"}], "2": [{"l": "Exterior", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/0bcb0dc4-0db5-4067-9247-4b058e382ed0.jpeg"}, {"l": "Living room", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/8b20bded-e93d-462c-bdb2-5173b49ec83e.jpeg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/885e485f-9163-4007-9426-3d3e4e863154.jpeg"}, {"l": "Bedroom 1", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/3f014cc7-8017-4bdb-a6d6-a71b5425f1e7.jpeg"}, {"l": "Bedroom 2", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/d1733d64-3e5b-4a1c-a88b-27a96d7fe725.jpeg"}, {"l": "Bedroom 3", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/94cb4763-5b02-43a7-b0f5-a21a6a953855.jpeg"}, {"l": "Bedroom 4", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/90def010-7c6a-4bed-b006-94c2883b49f3.jpeg"}, {"l": "Bedroom 5", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/136c1253-917b-4ed5-a664-84c475cd4998.jpeg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/a63ddfa0-047f-454a-88d8-7b13b8b0ac61.jpeg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1720892920376560193/original/1ff968f9-5470-4895-98c8-e411dfac2537.jpeg"}], "3": [{"l": "Exterior", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1779666171214743287/original/4ac58b60-538f-482e-b448-bfef1e35134a.jpeg"}, {"l": "Living room", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1779666171214743287/original/c76da85c-8e02-4f62-b3e5-497ce6f28208.jpeg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1779666171214743287/original/22bd89f4-5a4c-4bbc-8199-fdf20b2d90b5.jpeg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1779666171214743287/original/0420b5a1-de5a-4504-8d9a-bf5a3755e1dc.jpeg"}, {"l": "Dining area", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1779666171214743287/original/152d4e6a-ce26-44d5-96be-16b432f01e47.jpeg"}, {"l": "Bedroom 1", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1779666171214743287/original/7840cb5d-c197-401d-8dde-d3748eb2c629.jpeg"}, {"l": "Bedroom 2", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1779666171214743287/original/fc14f635-3d1e-4c21-82b6-8e3036e0a582.jpeg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1779666171214743287/original/003c6ade-6abd-4129-a5c3-172054ddec4b.jpeg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1779666171214743287/original/5c249cde-fd5a-45d3-aa19-ad1ab02a7b60.jpeg"}], "4": [{"l": "Exterior", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1228330410668056451/original/9cdc66e7-1d75-4f9d-85bb-c894bbed7763.jpeg"}, {"l": "Living room", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1228330410668056451/original/d1de1ad5-f4a3-4871-9aca-533998dc251a.jpeg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1228330410668056451/original/1e3adb4a-b996-4ca2-90fb-6a975945155d.jpeg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1228330410668056451/original/9be53513-8a5b-49bd-b86b-0d68cdd78c37.jpeg"}, {"l": "Dining area", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1228330410668056451/original/cb493cf5-fc61-46a6-8e61-3bd4dd4cf02f.jpeg"}, {"l": "Bedroom 1", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1228330410668056451/original/7b8f244e-365d-4c77-a8c0-ce76d65b9e3c.jpeg"}, {"l": "Bedroom 2", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1228330410668056451/original/bf2419a3-844f-423c-b8c0-88b0d7b028e2.jpeg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1228330410668056451/original/0e99df42-6641-4c96-bd83-2254ed3f3de2.jpeg"}], "5": [{"l": "Exterior", "u": "https://a0.muscache.com/im/pictures/5e681c2e-1972-477a-9bfb-134b6a5ac589.jpg"}, {"l": "Living room", "u": "https://a0.muscache.com/im/pictures/3cd24889-48fd-4308-9737-a42f43526651.jpg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/250fad92-e471-4f6a-b9ea-cedaebb690b3.jpg"}, {"l": "Dining area", "u": "https://a0.muscache.com/im/pictures/08443271-63ed-4ad7-8c7f-a98bf456dd09.jpg"}, {"l": "Bedroom 1", "u": "https://a0.muscache.com/im/pictures/1238aea8-8f73-4868-912a-39b58a80b98f.jpg"}, {"l": "Bedroom 2", "u": "https://a0.muscache.com/im/pictures/61592a4b-ad19-4c4c-a650-e57738dc2461.jpg"}, {"l": "Bedroom 3", "u": "https://a0.muscache.com/im/pictures/6dba6cf2-b10c-4172-bf6b-b0ca7a850865.jpg"}, {"l": "Bedroom 4", "u": "https://a0.muscache.com/im/pictures/6d0704cf-0530-4769-b39c-ce8608bf77e8.jpg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/51cb738a-e2a1-4eed-a60a-3776c89f3aba.jpg"}], "6": [{"l": "Exterior", "u": "https://a0.muscache.com/im/pictures/5eb408b2-8c44-49e7-9194-01de757fc820.jpg"}, {"l": "Living room", "u": "https://a0.muscache.com/im/pictures/6858d119-475d-4a92-b363-f56186513dfe.jpg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-41417908/original/3d80105b-65c3-4579-813b-7ce861a4d25c.jpeg"}, {"l": "Dining area", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-41417908/original/e8b7bb5c-726d-4ae0-bcfe-b15d1fb68aba.jpeg"}, {"l": "Dining area", "u": "https://a0.muscache.com/im/pictures/3b19c11b-318b-429d-a284-c7e49302398d.jpg"}, {"l": "Bedroom 1", "u": "https://a0.muscache.com/im/pictures/41ecfeec-7e8b-4452-85dc-328df8eb1ab9.jpg"}, {"l": "Bedroom 2", "u": "https://a0.muscache.com/im/pictures/6d0412eb-4e92-40d0-9a40-80a6443bfd59.jpg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/8eae8371-5fdc-48f4-b814-1657f51e3254.jpg"}], "7": [{"l": "Exterior", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/a16b60e6-2e94-4a59-b881-fefa3dfae9de.jpeg"}, {"l": "Living room", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/7cfac020-a48d-4611-8956-56de06d76841.jpeg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/9dde5a36-6f22-4239-a849-584e02279219.jpeg"}, {"l": "Kitchen", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/8007105d-83f5-49a6-a60f-e5ee6214a010.jpeg"}, {"l": "Dining area", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/309cc486-2261-40d1-915e-cc507ddea491.jpeg"}, {"l": "Bedroom 1", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/b732ab5c-1817-41a5-9fa2-60133c9b16f4.jpeg"}, {"l": "Bedroom 2", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/f03a745a-8281-4a10-9151-8ff142323c7a.jpeg"}, {"l": "Bedroom 3", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/cd53a950-a10c-4341-95cf-cf5640df01d3.jpeg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/c32f991f-3240-4633-92b4-1b997c95b415.jpeg"}, {"l": "Bathroom", "u": "https://a0.muscache.com/im/pictures/hosting/Hosting-1434846925432560192/original/58cff539-acc4-4037-b358-f875f5e85083.jpeg"}]};
+var LEFT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+var RIGHT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+function sz(u,w){return u+(u.indexOf("?")>-1?"&":"?")+"im_w="+w;}
+var lb={list:null,i:0};
+function lbShow(){var it=lb.list[lb.i];document.getElementById("lbimg").src=sz(it.u,1440);document.getElementById("lbimg").alt=it.l;document.getElementById("lbcap").textContent=it.l+"  "+(lb.i+1)+" / "+lb.list.length;}
+function lbOpen(list,i){lb.list=list;lb.i=i;lbShow();document.getElementById("lb").classList.add("on");}
+function lbClose(){document.getElementById("lb").classList.remove("on");}
+function galleryHTML(n){var g=GALLERY[n];if(!g||!g.length)return "";return '<div class="gal" data-n="'+n+'" data-i="0"><img src="'+sz(g[0].u,720)+'" alt="'+g[0].l+'" loading="lazy"><button class="gnav l" type="button" aria-label="Previous photo">'+LEFT+'</button><button class="gnav r" type="button" aria-label="Next photo">'+RIGHT+'</button><span class="gcap">'+g[0].l+'</span><span class="gcount">1 / '+g.length+'</span></div>';}
+function wireGallery(root,n){
+  var el=root.querySelector(".gal");if(!el)return;var g=GALLERY[n];
+  function set(i){i=(i+g.length)%g.length;el.dataset.i=i;var im=el.querySelector("img");im.src=sz(g[i].u,720);im.alt=g[i].l;el.querySelector(".gcap").textContent=g[i].l;el.querySelector(".gcount").textContent=(i+1)+" / "+g.length;}
+  el.addEventListener("click",function(e){e.stopPropagation();});
+  el.querySelector(".gnav.l").addEventListener("click",function(){set(+el.dataset.i-1);});
+  el.querySelector(".gnav.r").addEventListener("click",function(){set(+el.dataset.i+1);});
+  el.querySelector("img").addEventListener("click",function(){lbOpen(g,+el.dataset.i);});
+}
+var PRICE=465;
+var I={
+ pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+ bath:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h6v6H7z"/><path d="M5 9h14v2a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5z"/><path d="M9 16l-1 5h8l-1-5"/></svg>',
+ price:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9z"/><circle cx="8" cy="8" r="1.5"/></svg>',
+ incl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+ toilet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c3.5 4.2 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 2.5-6.8 6-11z"/></svg>',
+ laundry:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 6h.01M11 6h.01"/></svg>',
+ bolt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+ wifi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/></svg>',
+ car:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M3.5 13l2-5.5A2 2 0 0 1 7.4 6h9.2a2 2 0 0 1 1.9 1.5l2 5.5v4h-17z"/><circle cx="7.5" cy="13.5" r=".8"/><circle cx="16.5" cy="13.5" r=".8"/></svg>',
+ snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M4.9 6.5l14.2 11M4.9 17.5l14.2-11M9 3.5l3 2 3-2M9 20.5l3-2 3 2"/></svg>',
+ sofa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M3 13a2 2 0 0 1 4 0v2h10v-2a2 2 0 0 1 4 0v5H3z"/><path d="M5 18v2M19 18v2"/></svg>',
+ clean:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg>',
+ bed:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18V6M3 13h18v5M21 13v-1a3 3 0 0 0-3-3h-7v4"/><circle cx="7" cy="10.5" r="1.8"/></svg>',
+ chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'
+};
+var CHIPS=[["bolt","Electricity"],["wifi","Internet"],["car","Parking"],["snow","Snow clearing"],["sofa","Fully furnished"],["clean","Cleaning every 2 weeks"],["bed","Bed linen and towels"]];
+function row(u){
+  var d=document.createElement("div");d.className="item";d.tabIndex=0;d.setAttribute("aria-expanded","false");
+  var month=Math.round(PRICE*30.4/10)*10;
+  var chips=CHIPS.map(function(c){return '<span class="chip">'+I[c[0]]+c[1]+'</span>';}).join("");
+  d.innerHTML='<span class="num">'+u.n+'</span><div><div class="addr">'+u.addr+'</div><div class="mline">'+I.pin+'<span>'+u.area+'</span></div><div class="mline">'+I.bed+'<span>'+u.beds+' bedrooms</span></div><div class="mline">'+I.bath+'<span>'+u.baths+' bathroom'+(u.baths>1?'s':'')+'</span></div>'+(u.flag?'<span class="flag">'+u.flag+'</span>':'')+'</div><div class="time"><span class="tchev">'+I.chev+'</span>'+u.min+' min<small>drive</small></div>'+
+   '<div class="det">'+galleryHTML(u.n)+
+   '<div class="drow"><span class="ic">'+I.price+'</span><div><div class="dl">Price excl. VAT</div><div class="price">'+PRICE+' NOK <small>per bedroom per night</small></div><div class="dl">About '+month.toLocaleString("nb-NO")+' NOK per bedroom per month</div></div></div>'+
+   '<div class="drow"><span class="ic">'+I.incl+'</span><div><div class="dl">Included in the price</div><div class="chips">'+chips+'</div></div></div>'+
+   '<div class="drow '+(u.sewer?'ok':'warn')+'"><span class="ic">'+I.toilet+'</span><div><div class="dl">Toilet</div><div class="dv">'+(u.sewer?'Connected to sewer or septic tank':'Not connected to sewer')+'</div><div class="dl">'+u.toilet+'</div>'+(u.sewer?'':'<div class="fee">An additional 750 NOK excl. VAT is invoiced per cleaning visit for '+u.fee+'.</div>')+'</div></div>'+
+   '<div class="drow"><span class="ic">'+I.laundry+'</span><div><div class="dl">Laundry</div><div class="dv">'+u.laundry+'</div></div></div>'+
+   '</div>';
+  wireGallery(d,u.n);
+  function on(){markers[u.n].openTooltip();showRoute(u);var p=document.getElementById("pin"+u.n);if(p)p.classList.add("on");d.classList.add("on");}
+  function off(){markers[u.n].closeTooltip();hideRoute();var p=document.getElementById("pin"+u.n);if(p)p.classList.remove("on");d.classList.remove("on");}
+  d.addEventListener("mouseenter",on);d.addEventListener("mouseleave",off);
+  d.addEventListener("focus",on);d.addEventListener("blur",off);
+  d.addEventListener("click",function(){var open=d.classList.toggle("open");d.setAttribute("aria-expanded",open);if(open){map.flyTo([u.lat,u.lon],15,{duration:.8});setTimeout(function(){markers[u.n].openTooltip();},850);}});
+  d.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();d.click();}});
+  return d;
+}
+units.forEach(function(u){document.getElementById(u.st==="c"?"c":"p").appendChild(row(u));});
+
+var INV={"Bedroom": [["Bed (min. 120 cm wide) with frame and slatted base", "1 per bedroom"], ["Mattress (min. 12 cm, good quality)", "1 per bedroom"], ["Mattress topper or protector", "1 per bedroom"], ["Duvet (warm/cold season)", "1 per bedroom"], ["Pillows", "1 per bedroom"], ["Bed linen, complete set", "2 sets per bedroom"], ["Sheets", "2 sets per bedroom"], ["Bedside table", "1 per bedroom"], ["Bedside lamp", "1 per bedroom"], ["Wardrobe with hangers", "1 per bedroom"], ["Clothes hangers", "8 per bedroom"], ["Ceiling light", "1 per bedroom"], ["Blackout curtain or blind", "Per window"], ["Smoke detector, tested", "1 per bedroom"]], "Kitchen": [["Fridge with freezer (extra for 5+ bedrooms)", "1"], ["Stove, min. 4 burners", "1"], ["Oven", "1"], ["Dishwasher", "1"], ["Washing machine (extra for 5+ bedrooms)", "1"], ["Tumble dryer or drying room", "1"], ["Microwave", "1"], ["Kettle", "1"], ["Coffee maker", "1"], ["Toaster", "1"], ["Extractor hood", "1"], ["Pots with lids, 1 large and 2 medium", "3"], ["Large frying pan", "2"], ["Sharp kitchen knives, set of 3 (2 sets for 5+ bedrooms)", "1 set"], ["Cutting board", "2"], ["Ladle / cooking spoon", "2"], ["Spatula / scraper", "2"], ["Serving spoon", "1"], ["Grater", "1"], ["Mixing bowls", "2"], ["Colander", "1"], ["Plates, deep and flat", "6 per bedroom"], ["Soup bowls", "6 per bedroom"], ["Drinking glasses", "6 per bedroom"], ["Cups / mugs", "6 per bedroom"], ["Cutlery set (4 knives, spoons, teaspoons, forks)", "1 per bedroom"], ["Paper towel holder", "1"], ["Dish soap, sponge and brush", "Initial supply"], ["Waste bin with lid", "1"]], "Living room and common areas": [["Sofa with seating for all residents", "1"], ["Coffee table", "1"], ["TV, min. 42 inches, with remote", "1"], ["TV bench", "1"], ["Dining table", "1"], ["Dining chairs", "1 per bedroom"], ["Floor lamp or ceiling light", "1"], ["Curtain or blind", "Per window"], ["Hallway furniture / hooks", "1"], ["Doormat", "1"]], "Bathroom": [["Large bath towels", "2 per bedroom"], ["Bath mat", "1 per bathroom"], ["Shower curtain with rod (if needed)", "1"], ["Soap dispenser", "1"], ["Waste basket with lid", "1"], ["Towel hooks", "1 per bedroom"], ["Drying rack, indoor", "1 per 2 bedrooms"]], "Cleaning and maintenance": [["Vacuum cleaner", "1"], ["Mop", "1"], ["Cleaning cloths", "4"], ["Dishcloth / sponge", "2"]], "Other": [["Key box, preferably smart lock", "1 per entrance"], ["Physical keys", "3"], ["Mailbox", "1"], ["Fire extinguisher", "1 per floor"]]};
+var INVPDF="JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiA0IDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CaXRzUGVyQ29tcG9uZW50IDggL0NvbG9yU3BhY2UgL0RldmljZVJHQiAvRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0hlaWdodCAxMDUgL0xlbmd0aCA0NDA5IC9TdWJ0eXBlIC9JbWFnZSAKICAvVHlwZSAvWE9iamVjdCAvV2lkdGggMTY5Cj4+CnN0cmVhbQpHYiIva3BLSj41KFdaUTQ0TzlLWkRqaUQ7MGZCXlJXISY0YylcRUgrJi5nQXU4Rk0uIjc2c0AtNnJeMUJNRWpGYSY1WCdUJEFfVFUtciEhQU1RZGUnZmosQmVeMVsyR1BAN09TbjElOlU1IVNQXGdwcTpqcFJIPG4+XDheJSJAM1MlNW5GL2ImLVA5MSJAM1MlNW5GL2ImLVA5MSJAM1MlNictcEcmZTRmZz5zU0FpNm1AYzshVi5tLzcvYWc1VHJiNmAmT0gwa2YwRyU9PGFRYmZnJUliam1cWV5HMyNyblU3Lyo+LUxrYGpaNUgyNy5KJk5sXWNuT2hZW2UiLGBDOS1iN00+RiE1T3RxOyc3R11JbV07aW4zOE1OLCljNVhmV211N2gzSGQ6NzxtJjshT2BBYFknMExkUWBFKy81Sl9ZQHJ0VVwqJlxdPTg1XCQqaDg+Xj8wTlk9c0pYI0k2O1liTnVJKGlgTmFKPiRxXWUvM0BRUjkxNGxLQmRYTTlRJkslQEUuTT1QI20/PTdxO2oqMTVGRWMqTS9sJEokVFxWP3NoYE1HNj9WZTtQJ1ZZYy1dI1gpUDtJQDFWNzsyMC5SNiRIQFQ/P2EiUzVkT2ZHZTsyY3Jgaj1PKS0wZCNeVj42UikmRDpWRTt1Nl1oL3FYYyIwKF1VZGJvVTQyS0kiJydqQm89WUAiblhvZTRIOE5aWS5fNl9oajhhRzBjZ2JvcjRSWjdNbUJRPFJEVG4hVVk7cT48RTNAZXBpamFRPCxNS0gsKVQ+T0NHQmxcMDpyVGw+TmddbF9ZLz0lPnUjaCw3R2I2TzJwXzVIPzY5OmcpYD1DLU9CcCtLNThFTWFaQDorXm9ZITwpS01zOzddK2RfJ00mZUVvRUllMCtkVipTRy4sRmZQImQubWUjYl0hXjhqSF1XXV5ARmUpNWtmaWk0XGpLc1AmMyZ0KkByTnA3O25wRzNcO19ELWY2RSdtPUxLSWY0WWVVKkU4N2VyTjhXTTlbZGNmJ29uM2o5P1IpSipFcmNWPUdRS0ZXMnAzUEpRZVtPaEQzXWlhUkcmaDdTaVA8NlgyXSViQE1cSSEqXEQ5XVpYL2NtSCM3IWM0Lm10XiVXaFdEOz0makM6XV5TYT9ybyhHZ0FFYkU5ams0ISJEVWFBTVUvInBdcmFOSFtbPzlGSklKWVNqIV47YGsyY0tGa09iOmVLJGcmdGBkKloxT2RiNyljcj05KDpJIWU2Q1pnLG8rVTE2Jmw4IlZgOTlAPzdmYiFcIShZZnBMIjRWKiNHSHU8Py1JV0xeRmMkJCorKVE2ZypmaHRvS1FxNTItTVlSIW0ua1Iuc2xFPUAmWkY3MzFUX2VbTkBWUFZNTm4wWT9OTVJbbGJDI2VLRiFTbDVjOyNDbVV1WlxvYzYjSFNCaHJyPl5UV1InZVM4bUMyKCtEZVJJNDdqPEk6Xj1yZ01nT2lwQXAhPlpzJEIxXkdILHEkSz9iV1thOXUnVHFBMWk1dGhoYTldYEVoVHArVVciND5YaVNJaSxxcyRWNCxbR1NOVl9eWVJCbU5tYzhdVmRFTjljVUZiMzxVNG88R1guZVQsaWFccD80TjtZJzlnKVgyJVNEO0VjOy8kaCVOZ083Oz9OZ2A3LUZKU0k/YEhjTlI6ZyhMbC1UZDZgaiI6OywsOUNmMURlbis2YVFDKG8lRm1ZdVNKPWlwP15bXlpGbGdTJCt0bztnIm1EUU5nTnJGWElSPEQjRXJsITsvZlMmJDJkTzFJS2gsMnIvTT5XK2RvYEg/WWw8N0gmZWVjMjFkOF1eVGhwLUNPSGMtKlw3ImFrKzI6bFwxLVsnRk9sMltYRWhRZ2BqNDpbdTdfRXRkWkRtOC5HQlhLakJEV2dISGcxS0VFPW1BXCFtUnBnKihgaXJuMzxvPG06InBtNWZfLDw0Imk3SDhFSFZMPnVPXCRWbjZqLmIvTERfL1w7aTNgaWIpc1Q6TU9gQl02Vlc1Q1RxOEVIWTwnLFQ0LT43LEI8TjYwQGxARmdWQ1wydUMiaktRNm1YYWxyYlkwLk1jTF4xJWBoXkFINFptc10vSDgyUVxGR0tTN1RfIjMpOmNaKGFZVDZSLGxxKEVkaF5WN0c9aSZDJDxXZXRQK01aWCQuTDBMTU8jKHBDWCRPWz8uLk9pWjEwbD9XUysrZi1rT1ozNGwhLiEwZWsnKF1HOkljOCIuSV4+WShwQ1xDUCEyM1ZCcDlZaWIuRi9eai1YZi1vUUtMa0pSaHVHPzs3dFJgbk8vPGVUbXBWUVE6azEtOCVNQjZOKjYoPjdEJCMwNC1uXWZzM1VaKmNDVF80I2cyPzxpRSNISWxJPmw9WWpdXG4yZWo0KE89VUBobExoLi0rcipVU3JTb1hbUSI6cF1fPFZaPVhTMmJUcUZAdS8zVmtQY1kvZydvS10rMzpJYFY4SXBUbTNwcztKWF1DaGE6QWg+Vi1LXVcpMUBMZjxSZUM3VCdCb15XKT1cZVprIWw4NWpcXktGKjwqYDRAcVIhSD9xZHU6VFA5W1tqbydSQEc/LWxxQGFHXS8oTEBvXjolTSQzIkVjSFBRO0JHJFRjM3FybEVRZ3RcXVUnUWFlUHBdSi1oQmdXIU4xcGNIZS5XPkNLMT1VYDgqSyFfIVVIb1o4PnEkODNxNzMvMk9VUW0oSFltbzBtR3FrJCFhWT9bX3B1ZjNhbzdTJ10rU1dySihbXiYhWi9AJyNHL2ciVm9NMXQ1O2pkQEo+RDAidU5mcFVYIW1SVlIxVydHWGs6J045QSJjKzwnKFRPa2lhTktvMyhIMjJtKiZybiI9IzZsLmcqTCU+Y1QwKXBzNmlGLCw6LTA+bUlXcCJGcD51aDVeQVJuZTAwW2teRCR0N1NeS1kqcygzOGpWSU4vcittSS86OilBOkQtUjlXLm0kdHEwNSRjbCtmYytpTEg+cXM/Qi9zLzhsLDhSNjloRyZuaz4hJVsjRyssTVhcPUxYYjVDPVJ0bWQ6O3EvdD4iOXAnZjJnWCh1S2RRcU9mQF4+PC91SUQlO0tyOXBQVUlBM0cqRig4Xz9rYCRlSDc2ODt1IVQkTztkWSw3YU9iaiFoPEhfYmE6LzYuOTdEWjU2Mzx1Mi1nYGdZWUloREEvWkE4N0FIU2MwQDxXcl4oWiJrU2NWN1dAbG1sWjssbywjVkI6OzAzWUpjak00QzFkJS86SHQ3MklHMDtZLEdHRHVFTiZfZF1gXDJRLCo/aWdOOGc/XD9eKkUpQTxWIXRGQTQhMDhURmFrTV1xRzVmW1xFN1pZLlQwLHBnXUhUSVJpZC1SWnNpZ2AxcFdeQ1QwQjc6ai9USSdqSEQ/JkRjJlAjM0QwXS0paylHRSMtV2FNMGFtS1FeRnFcNzY1Syk7XmVlRltsdUc1bkYvYiYtUDkxIkAzUyU1bkYvYiYtUDkxak1QTWUjOTJrbyZSdUxwOlgrQ2BvNjZyZXFTbmw0aFVwaUZtRSo8QzNFOzJlRGdnJVRFZyh0X282aUljMEBaP2ZqUEpiTXJyLkIvWyhFcj5JN2c7JVwkcmooXW1EXCY1OURXbDNWRD9xVkRDSWBJPTZQMSdWUz8qPj9oIW9pUFZ0LFpIQzxecUlbWlpfYlNbU0w+OlFoQlU/R0Vfc1MwMExINEpkR2IoQ3JvIUxkQ2JFam1EZSU8MyYuT2xwQCljXW08bmtYVHJIaFFnIiJSKVhUXTJKcSFiTWhGPU0yQzQ+PjNYQipwJT9TTmE8NEIjbCohOXBtYkVPKylpYnQmXHBzYS85aGlsY0tFUlxPOnRGSVlTXnAnLE5LMCNvOWhoSV4yIT1pN3BKazBsTlo6KD1raWA8RkpCPHIkKy9hZSw5aGU+JDJmQTlXbjJQQ0YhNDpWOmc8KTgrZSdoZj9CRidMRXIpbTAqW15OVnQncU9QU0JQPT84U0szaT44RERoTikoTDtIQzFfKGRIaFZFSD1vKVNEN21mWV1lXmAzaGBGW3JASTorPXFGbjI7XnJhXyxgTyRDUSlbOiNmRklKWXBiJGpGbXBuX3V1IzRbJikrNmtVOENFLE9MQzc5RG5kPTI0Xy1nWys5QytycyNzLHBmTFhZYlZNXkVjUTFFajdxc0libEcxb3JxcSYxRW9ZMCFsS1ctJFAkVVhLTFFOVz1AcHJlM2pNJi4wQj9xVk4vTTBlXzhZaj4tWEs5anVkViddK05AUyk1JkYlQmxjLT1MUEZpJE5CWXM4UVpiYUM5OmxSQUsuQW5FQjInYT1kRnE4Sjcub1UoWTdFSCpdbSpSLWhIb24xXUBwJDo0XjBAUmtQXUtDLWBEZjlSMkg9UnBGJD0lPEMqSyxgMEo2InBIcSReWVtdIjVKcy5FaSdgUUJrMzFgbVRraDU5OlVXKEQlLSNGMzMuaVJaW1UhV0RpZnFyXjg1YTkxb1ojVThcVV5lPmZPS2kjaysqbVkmP3Q5JC83ckY3byhgYTFITl4rc1NJWkxedCUla2k+Sy8vMGxKZDNCP29STSVhODNFLCZsbSIqNjtQOWc1MnE8KW0lJjMtNDYrRDsyTDVDTVNRIyFzOFhEbUdbPFlWYTRjRyE5YlwmJklsTGthJzYscy5KKlo7IyQlWSVXQm9fcCxQP2IwPnVYYytoKHBvR0FMYUxCVFNUKSwpYmY/SUYkXExCY18hIik0JCNEPC9tSlo+Sz5FMW85XlRBUzUhQyJsKCsuVSZOdWlrc19vLyItUEpeWFopLTEqT1QxRSYjRlFkLS4iUzByS1UhZTo2SDolLlJKY11udVteSikvL01Paig7Mis4TWFOMTxSVHFTOVgiPiI7WGlzQDskSDFEKEY2SHIyRllsJyxFJV5sTjJlXnJDWCJwVFwsJyVVLSs/RzFabUBgOFwxQW1nMSpldVpFJ2s3MW9wQDFFYlcrPWU7WlE3Wj0uZnBpaDJwXWVKTFdoa1doV1ZYSUEqSl5HZCxUJVVfVFBiI0srIjBaXishZk9SSTY2TWBxLlVGWzdOL2srPVc/S24zW29VN2k6N0ZraVJsPnMkUG0sRGJxUDJEKiRBL1RgV2hsZDBbPCZqOl1ZLz5fT0JkIiRrL04oZCFuKUIxSGdDWyFrOWg4cU5FOiZSW11mJGdZOjE8a3VDakpKVSdVTmc6VlxlSFIxcCYhP1lAOXM1MT44Ik9NLkVOL1VHJThLajZGOGdMKUxgZ2o6LDtCUipcWC9jSTEjSydnWHBvS087JXNUKFxiOV4lMCs5T1M4WFYzNlU1c14mQ0s+R3EhU25cQz8hLmhNW1hxJGNvJWohaVhsTyJgOCRgaldOOjFJZW9OWkMzUz5wOy1GT0lrXD1PSWklXUBVZDJaTCN0WEVwMi1BKlojTks0JUZZdEVMOF8lITMuUU1pM0dCZjNbdCJLSC1pZlRoY2lmbygwb1JRNm9XclpkaSk8JFkkMjxsREsrTFhXP2A+NjRSc0dBKSY2Kilicjs/SidEWiFwQzlHZFVgLV1LOEw3Ii9sTVp0P05ST0UwZ0heIzQiaj1eWFsvOV4uRFAlVWw1aFlTLl1iYDRjP3BKNGlULkpBamE8T3U8RlYiUGc2cE05bzQ7XEJVZ24rMSk9L2REMFRcL0lTVWFSJlpQJCE7ZiEma1JiWmJSLyJKakJYWGxmckFdcXNuIV1hZTBfbjBjPGRhOGNuS3VWZldKJktFcF91Iz5eWCtGZk4/OUVuQGd0MS8sKktZWXE6Nj8tUkpfLyZKMCllbVFXXGl1STkhLilwOFJzVm1WZDRcNW5GL2ImLVA5MSJAM1MlNW5GL2ImLVA5MSJAM1MlNW5GL2ImLVA5MSJAM1MlNW5GL2JPUz9dbiErNFdBaFp+PmVuZHN0cmVhbQplbmRvYmoKNCAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYS1Cb2xkIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMiAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0NvbnRlbnRzIDEyIDAgUiAvTWVkaWFCb3ggWyAwIDAgNTk1LjUgODQyLjI1IF0gL1BhcmVudCAxMSAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXSAvWE9iamVjdCA8PAovRm9ybVhvYi5kMzRjZTgxYWU1ZjhjNThmNjllN2IzZmNhZjQzNTE3YSAzIDAgUgo+Pgo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKNiAwIG9iago8PAovQ29udGVudHMgMTMgMCBSIC9NZWRpYUJveCBbIDAgMCA1OTUuNSA4NDIuMjUgXSAvUGFyZW50IDExIDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdIC9YT2JqZWN0IDw8Ci9Gb3JtWG9iLmQzNGNlODFhZTVmOGM1OGY2OWU3YjNmY2FmNDM1MTdhIDMgMCBSCj4+Cj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago3IDAgb2JqCjw8Ci9Db250ZW50cyAxNCAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS41IDg0Mi4yNSBdIC9QYXJlbnQgMTEgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0gL1hPYmplY3QgPDwKL0Zvcm1Yb2IuZDM0Y2U4MWFlNWY4YzU4ZjY5ZTdiM2ZjYWY0MzUxN2EgMyAwIFIKPj4KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjggMCBvYmoKPDwKL0NvbnRlbnRzIDE1IDAgUiAvTWVkaWFCb3ggWyAwIDAgNTk1LjUgODQyLjI1IF0gL1BhcmVudCAxMSAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXSAvWE9iamVjdCA8PAovRm9ybVhvYi5kMzRjZTgxYWU1ZjhjNThmNjllN2IzZmNhZjQzNTE3YSAzIDAgUgo+Pgo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKOSAwIG9iago8PAovUGFnZU1vZGUgL1VzZU5vbmUgL1BhZ2VzIDExIDAgUiAvVHlwZSAvQ2F0YWxvZwo+PgplbmRvYmoKMTAgMCBvYmoKPDwKL0F1dGhvciAoSG9tZVNoYXJlIEFTKSAvQ3JlYXRpb25EYXRlIChEOjIwMjYxMDA2MTEzMDA1KzAwJzAwJykgL0NyZWF0b3IgKFwodW5zcGVjaWZpZWRcKSkgL0tleXdvcmRzICgpIC9Nb2REYXRlIChEOjIwMjYxMDA2MTEzMDA1KzAwJzAwJykgL1Byb2R1Y2VyIChSZXBvcnRMYWIgUERGIExpYnJhcnkgLSBcKG9wZW5zb3VyY2VcKSkgCiAgL1N1YmplY3QgKFwodW5zcGVjaWZpZWRcKSkgL1RpdGxlIChJbnZlbnRvcnkgTGlwY3MpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKMTEgMCBvYmoKPDwKL0NvdW50IDQgL0tpZHMgWyA1IDAgUiA2IDAgUiA3IDAgUiA4IDAgUiBdIC9UeXBlIC9QYWdlcwo+PgplbmRvYmoKMTIgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMTY3Nwo+PgpzdHJlYW0KR2F1YFVnTVliKiY6TzpTJSdWQyFkNC09aGxMTlhjPyQrSVBnVyVrUmNrZmxbQGw5RzU4NS5oKmZDK2cwQUIxWzpDLXVBUixcMEBpQkJHYENMYSpLO25LUltGPzNAai5fcyc1YUtZaSpDLFJQYF9JdDcuZGxpc1lYZzBwS09qYC1CJDg8UFsiKjlZUkFobDQnYDkuYmFJN0NjKktPRjNKWTRDLHNwOUdWSDRNZTBnZDhIY1wrWmQzbVBiZkVPOC9zZXQ6XCdFNUxpIjZMKydTOy4mLGojWWs4Syc7Ym1GO1ZeLEQzTz89SDAxVVRbbSdcKWFhcXBKSmZIRV1SWjQ/VERnaE0xciZoVjJnZmsiM0lfKSREX1FZSVk5KzA+ZixnRiFQKz1WUjJlWztALVNtdStnYEc0bFtXV2pqVG5TXzY0ND8lLSZBWUU9UVdjNSJCRkBxQiguOzA9XGxFUCFsO0RlUFVDViM4ZC0tU2pmXVk6VDBVYThPN2k8O1VhJHU5YmFEKVh1LWhDP2s2LnQmODddWjUoV2o6KignJSk1M1lAVVhzaGEmZD4uZ19JVFNITnJfOG0xMWYqKV0kRl09XV4zWkBnQ29CVyxpaHAtUExbWjg0a2pgbTNCOElMZWQ+Y0NgVk86OzRhRk83PFA3bzt1XEpDJjM/OD5kLm4sV2hJVSktIjBhO1EhTGRKcyxpdD8lbD1GZnFFS1FmazBYSSlOKG89NGYjUiZuPkIsU2BTK0Yqci9oVD8hWElzOjs9LWdnO0dtSDErJTlsZFA3UmdOakZANytDTjU5OmUwZHBLKyZnc0l1YjopYDNKU1ssbkIlYiovUzUjTGItSVg8J1FxWCM4LTk8L0NwJWQ4JWQjdF5dcGdBVHUrXGhbc0FcX3Q3RDpjJUNwT1NLcURQJkxVSU1uK1dgXV4+SVlAVGtzTS41XUU7bWtBZnBaJToxYDFzbiJLdWxvUVdlIippPEdiWF5XK0k6YkdMYEsvKzgncGRVXyEpMS1aT2QtV1U+bG5wWU5zbV43TmhjJzQ8Kj5rUDFvKmpPWTQmcjNwSzIvU3ReWy5cU19bPyFxXHInQ0YlJCFwZmI8MGQhQVg9TXVzOWBuUTJqNk9tN21HaScjXmVBXVI6YyNbMWpMZ104TFhrUWQsJGJxOURWJGFgQydidUsnZiwlMSNyN05pYiMrRGk7KUwxUCgjM01eaTp1ZE4+WGshXS07bEckTFNjbEZFbkxXXjRfNClrZT1ic3Q4KD4tUThrVTZoJFA2RWw3aSZMI3VnWTRmaEVANVFqPkcoJlhfSVM8aTcrRkUtIjIjTComVVEmMDdeOUVBZmElNitNPmErMFxaWXM9PGdEQlxEUDRbV1JnOmotN1kpbiNqcEM4KCJuWixcTzY6SV4yUjdVPjopV0BpQzkwTzZmRz9JREYwJmtUcV1vS1A4b2Y6aEc+SVEqSihASiw5REEmLU9HbyxzJz8/XUM4WSI5PUM3YWJoalt1OT1EUFhycFJ1REhaTlsjUSE6SXFCWVVeJmF1MkYzK3I6WEVSJSgmMDQ3ampjdElqcVdYakk7XTxgOTBhY15qNE4sKFprKUxaLWhgMV1rSU5qZFFyZyJnLE9nVTMmYSFGWm9cVDQ5S1YkVWhrZC8zLyNvOitGY2kuXjZIMGtAIVUuKCtaLUsrSmZSQT1iOllFYGUoQUYlTiZoSkFSNklbNXRGVDZSRGRTSFd1bFgybUUoUFs7SyJWcFAuNzFlImMhalMzOHVaSzhlLT5OMmAjXFpdSzU5VTlxR1xcYipPQXArVC1vQktDNkhNYkdqSHVDPyokWyhrY0I3M2RkYCpMW2IuTyEsVT46bXUlJ1k5O01SLmllJjknIlVoPF42QzhfLGlYSlldIUBHZy0jJGBCMD4xJUphVFVHST9maFpbQ1ZaI2FSLVNAO29HXjApRTVHXmQnRC0rR1FSWz9WaDA+JV5dJnUmaGUjMGNyRkdHa3E9PGkmTGdgKWU4PnRvW0RwdGNGZFJxRUovOjhRSCYmckdTNStda0VtQThKJFY8NypdPGJjcjUxbDZRLnAnKXNZXWJHZ0dQa0VhKERpZl1GMD8lNk4sdFBwU0Mza0xoLUc6Kz9LOVc0RydSUElzb1ZlLWAwP25ncFpGc21qbW9bNnMvKmJySiVfTl5NbEAjRDMiVkAuZElhaWk8WCk1SjhaQGxEXEJtXSlXSGJvJlVbOThyQn4+ZW5kc3RyZWFtCmVuZG9iagoxMyAwIG9iago8PAovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0xlbmd0aCAyMDI1Cj4+CnN0cmVhbQpHYiEjXjk2OGlHJkFJSTNscUInUU90K0QuTykjZTNlJHM4Q0JWbXJmIV9cWCJRa0V0blpCUDphL2s/Iy1qVWU0W1pyOmFWbV02X0RdQUVcNT5zSk1vci9nZERATF9nQSVQUS03Ji44IkQmM2YsLl5PV2ZiYVc1aUlUWT9DUzVmNzdOJCZFJVNVQjhKMT9DcD8hcVRvKFNbVWFjWkBOcSg+YD0hOV1fRi1nb0NwZj9UYzMvdExdWkRPbm44Z04zSFhvRGImcDQvRF0/KmBjJkw5KlQzJEQtST9rc2psLD5fV0BjbyxAWEFNQEpkV1JSOmJbJVlxWm4pcG0oSE1kIkdiZUxza1I1WHNsPVBSQDNUbWYmSE9yPWI0TGBDQW5bRENWODBFZHQkcGxSPFsnV2RuYkoyZ3BDTCVaRV5fJVNtUUxlXG0zNj87KDlKPVxaTE1cQ05zLFdLV0AkW0ZPWUtgX1BfaWo4YE5UQkhAZDpAcylDSWM+bCM1MS9XYWtsLDBHMjcnbCNFQnVhSVdFakZTYXNJXGpHWCNQLG8/PzdcUEkzK1lBcCNBJmA5NEZQSDJRJSIwVVY+OG89ZSxnOipiXSljNihRNlNfUjFZb3JadVJSIT06MlNTc2cuUTAnJDEkJmEyRTxoJComKSQ8Q2dSOCVIanMxbjB0KG11PVIhcUBMR2lYP2pRUyErZztAPmphMF90LCdYPzdVN2tXdUcuVTkpWVJuXD1EW2JQXE1dVj1YZyxaNElaQGBJMVhfYUFeYDA7L0ZuMG9eJllcRVxTUlhyKTMxWWZCY2BWLFwtREFFQnFealw9YFFkYldJWy1TTW5qTFUiRWxLJ1NnOVFhVSYsYz1fXk9OXztcNW9ZTGI2aFFCMFRKbl10dFk1UEAlYmJmJy1jTiozT0ooN01ZJUhSP01dQTdlQUpoJyUuM2YqcDw9ZG90cmUyRWMsPSpdKTE2cWc6M1JEInVVcWEwXmBQPTFKYzU4LWFPUyNYTGlFIW8mYDYoMmxeaWdsT0BlNV5LYm1QOTozMmEwOldHXFtIVC4pcyswZz5ScWwtTCJeW0hjbSpMbUFEOExkSTREbytNNU5NI21MX146WUBgP18xNUVROllPX1M9RTNdbDYkWTstOilpZ1kzRlVTb0UxX1pdTzpWTz5AQUhCUHAqSGh0a0lFUy5nJDM0OyYja2A7OCs+RjtcYHJmU21rcidCMGkybmUpOyMxKzxwREwsSVBNO0hsVjBEaFp0b3MpK048KW1LbWdqMCZBXmIkKS5cTCJ0MUksYTRRcGUkYVJvQDZHXmJnYStoM08hZGtnTiZXMFBJXU0+SFNdKzJrOVQ/Uj5kcjdUUl00KGtIQWFSPz8wQU1wSEtsOHFCYDc7J0tRamFBcVdgKldaV0QhYDddMjBPPjI2JWNYSkJhU2VecGdfTVtFZ0oyZ09nRDVRJHAnSkZdWU5hXkhhalttL2c7L2JQbCRlVllJPyRMOXRaUjRQUz9eUlBZQEdeYXBtImxeLkNYT1QpXlhcbToiaXB1RylaXS0oTjk6KW0qbTVnVWFiVzt1UV1EIyhjLWxvTkoyR09cQDw7JEhQZSNrQmVeZlFWZmMiTiJrZiVvcXAuLDxoIVw9RC0kbERZJ2Y2LjVqLidBQnVCQkg2ZU8nJF5dSDdPSnRmaCtOPmNHcEE1IWghUGoobTNdTUpqYGU5YSREamFwYUIpYXNfSzgjTCpXaVdEX2BGX2BUI04tNFspc0NFKVJIU3MkIiNQUEVIXHJHY0tJbDY9JmpRaD5paTlUK2tbZ3NKNW5tKEc5cCVhWT1iQkcpcT5eOlhNWWlwUkFrTHI0TVRFV1FlT1dIbXVSOl4qXlZkTjAoIUIyL0hJbGRkTT9LZklkXjw8XTFhRilqZUBqa1NxPkU1bUxaK0ZtV3RKQ2hXZkIhS0EsPUQtOUMlJFoxKUopRyxeQXJAOGtwUSFXRFs8TTdaRS4sLnMzOWNFPVJvKT0tYFFJSCc9WmNNa1RgTztpP1pvN1pwI1ooVEQxWylFb3RTK1gxNyVtRk4rUmwnZk4wJnQtX2JWRC0/aEo9JGo2M3VtQGJUT2pVQDBVajRYWSVpbklAKEYnWTRsPHJDZm8uXGh0NlZzNENFSyFtVU03L2hsLWcmW10wUXRAbTBnWUBKMitTIl4zQ2BYZihrIjIqSic8alIjbm0iRkxyUmxKTDFpYyU1M3AsRT4pJkc5MG1Ucm8ybCY3THQkaGBvMzMuMEdvT0JeSFV0KmRzIiZzQGJxIk9gJz1Icj1pWGtYUzM/LTxkLSpFJi1IaVx0JHE3YixDXCRkXGViPiZScyRKMT81NzVCVXEiblZYTWpzL0I1Ll5ba0RERFVZXzElKVY/JTtIPDksVyxbW0Q/L2M0T08/O3BHRG51M1xvZD9CTWwoaCs+UixiTiloJ0hORS9cUSlcU283YV9Gc3BabV0nbzVgSE8qVVpHQFlmNHJFQkwlLyw4PG0tSDg+LV89QEkrKzgrWklqRHEtKiVLNyhMIitKQ0AnSzZlUkUwcmY6bGZfMWM0b0BhX0pBaz0lY1JlTlAvTiRnOylAQS0pMmNLWXVhUyEudV8vRlo8Q2pCZjk0WWdgWD1AOUQuSDF1a1EpJ1dLWTxEI29gVyooNCRSQygpQzhdby9dNmFiWGhHX0BWdHBMWl5CKSY4PDVcfj5lbmRzdHJlYW0KZW5kb2JqCjE0IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDE4NDkKPj4Kc3RyZWFtCkdiIWwhPyEjYz8mOk1tLlF1aHRUcDJrcDVxPUJgMGReI2RkIV1mKGJpNU10X2A1VCE1bTUwVEpoaVs6YytpSHVIPDRZX2w7XjxddVkzMWgsQjxGWTxeXmhsRCJxdU9JIT9AW0MrOz4ibCZANjtsaSFYb1BvSCpMMylzKFlUIUdYXUVgcmE6PXFwYExbSEE/LFdTLD1ka3JLKkVKR0RYWUphOjBbWlo5QFVhPVZVWG5hWGxISEUlNjFjcGopKGMpVkg8Qic+Iz1LVSJCJFQiMzYsMEIrajRWZkdePnNSI207UldPczkqMmElQHA7P2Uib2tXUmVcKVUrdFxDYFI4WWhWbmFIRkxwPjlmPDI8SWBidVtDKGFWJkgrX0tcaCNEQkE5I3VaYm5oSCRENUwzKHFUP25mRSouPHIuVmoiYFhfXyZyLFJuLW9Uai0sTlRsUiYoRFddXG51UyxgNUlHI0JgMyRkaXBDY2dEdD9sN15zK29MMmRmYCdGbDh0UDZrJEM8YilXLytVPiQvL0xMTTZIRm8yUi9zJENMOlFWUVBOODRoPT0hLFBxTzBgUFxtUy47Zz5UI3JVa2x1cm5OQGZyRTlSLWgwKmJJX3EnQmU8QT9rVEM5XTZBJCRZcWZvLz5KbGJaZWViRW5uIUxcYltvTHA6MGAxSEosV3BHTyElLUwhblRVU0o/OVQpSi9VSVpxUWJQcDRdMnFLbWdMQ2k6SCpKZWBTKWBKVzs7TWlxPltvVnBgKS1dNkpfQVpIXk8+P2grbShuPFl0LjNRLjJnYGw5NC9bOjhbX19PYWplajBaRSMxW0pfQVouZGw4RjowKVhyPTNTMl5sIzxyWUBQaCc4JF9rMixYRUpkRGxUMFBUMDo2V18yJGM6QEBCUj91TjsuKWxqPDdfaWY6SD9sXVxiX0FaKEVBMEwkTTFiRTZQPjE+TT5oNXU0M24zMyRpYl9Cb2olc1MyZ0YnM0ktVUJBUW9GaXJVcy0+WjA3aG0rQz1HMCVNOGBULVZZXiNeU0hQaWpEOGtBS01KNkMuYDZRNTNIYU87RSRRQ0ZCUG1vZV8pXl4wJSU2S2k3ZypKUjY5NFdxRUUsITc2Qms3YytYZzI1N1k7Yk9XTC9JLUtDTDoyKFtuTWA0WlFjWnVNXzQvOTFtc0toOy1ZQTdGVWk+VCtvSEJbcCYrQG9nZyIsal5zVjZtUzZUPyk+Wz40b2MsWlU2ZWlBQ1pea2ZVPEMvLUEzL18tX1FlKlI/S0c+LnVCSEpkcmtTLiIuWD1FaDtDWzZXRDxzI3JNRSRpNDg+PFhcYnNHLGM+TV8wKWRvLiMoW0g+RCI9K2Y+LWFiSWMkJSg4J2M1L2E7amE8K1FuMWNWXiVWJEp0RjtKSDFPIWBZT2NUYUQvSVYrckxIOTNnJXNETFksQ1UpWGZVKGxSKFs4PiZPaTNXaT0/VSlZLjFsKkRKLD5dVW4ocktmIzA3QDE+S1wzbGdFW108LnVgZiddTHFkRi5DSFNTczhjJV5xOyotQnAiNj85dSIuImZuIlYsRDVaOSVSY2xccW9VQEtLPlcwcW5qTidCYjFZQTcsLShzQycpdDQ+IlJvVlZzZUJsLj8+NHVaPHArTzxdXFQlI0FPRCc6JUpSTS9UKS9kcyVJMGlyMzQnYV9IRD5YVEo1TC9vREMrPVtWJ2w/KDpRIk9xYFJTcEs+VkgwNjYhY3NGQFQxZjo/SkIqTUI0YylbPVJAYmJwR1BTOWJBNG9DZDsqTmA8ak0kNFRWVVRYbiQhL0xcWFJQN0wxLVwxYF9iUTBWUE8zPj9jT2pJLEolXlo4UF0qcCM8TSkidFQpNFFbYnFhWjRjRUxoQUtXdSpfMz1JIicoaiFKLDRTLiNlXXM+QylqYnQlW1RxJVw1Qyw+RDEzUV86ZC9zQDJIWFtaSDBYJ0UqR0FsVUhmXXAjYkFiKkk2RUBBXkpCWUVAQ3RVMDphPD89VUFeIVJHKTdpRS4+QlopJWpWamQ9YlpdcTZuJS9jQW9oa0VhXCFFR2Y0QCtPMl1vREFNRTY5L01LSGElKGQuO09MR2lFSjJdMHBXMjZWOV9TJExVImNIVTJPTm0kbElxblNnSmxjL2Y1WF9wPkE5cHVhbjQrRCIxYHVNYj9XLTc3TkAvMzBzM0RMW2o0QjxTcS02OCQrcm1QViVndFdlTl8qO0JSRGkjWEhLKUhoXVxKSz9GQlIuRUlXRTBWLFlYRidnJm03U0NjRyYzUTZXXihvWDVjK2NDbjJKcz5rZ0xWSHBcVjNLLTBQcylVblRAViRzRTVtWlE1MzZNWEhRPzZjQzFaLEFSc01SIWNnUS5hZ1A1T1lXaVZHOlJCQyIzOm5QPV03NF4mOFpBPEAjOVJnQlJlYCJtKE1wRWhnLzk+IkAuRyxUYy5LJTNuVXVoMjEzUEFnPTRNPi4rU21IcygmKWZIalBRfj5lbmRzdHJlYW0KZW5kb2JqCjE1IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDE0MTAKPj4Kc3RyZWFtCkdiIi8oOTY2amYmQUokQ0ZPYVxbO21RVE1gOGcoJ0NWO2ZMMkFwW1ImJVRiYGZMdTkqSm4ybiRJVG5yNCtDZ3BQVyNTXWwuaFFZXl4vaV9acUxdPjVuTyhJNkAxKUthSj40biVgLkIqNUBOLjMuP2YzYVhndTY6LmJAL20oYkFkdVhKYTshRGBHalxsa1kvI0s1PDFUNWUuLjEmXDZ0RjgxLCFacWlEKykkbyNSXGVcL1w5KWkhTVxtIiZeQCIhajplPGxlRHBYaF9CK1YwUlQ/JGY+NiYxNGpzVG0rKFJAJnEtYSg2SV5eXlIhUlxxUmpWLj5HU3N1Uz5mJVRRcyM6R1pRSyIpVCZJOyQrPywlTV0rQytvb2s+aCZtXz9mSkBqMDBCKyEhc0lMKHBvIjQ6MmFeX3QuLSFYaUhcIV5WOy9dISxwSDB0Y0BeVVxpKnBGNCY9RCJuTExoLWNcJkJaZ0U9ZzhkcSM9PUByMURuWSxjdS5VUkZvdEZSZ0F1SzBEVkdyUEYjUVduKWEkdXUzMUdRW2lAV2duLDosYGFFODVMbXJyZD0iUD5eNGFrZSsxSEZHKVhONFEtR2hLJyo6ST43KE83SzAjTltSP0I+TT5BZTcvWClDIydvcy9fVEc0QUIrckFIPmxMMV8tQlMqVFpzaVA+M01PSl8rb2BKWGw1UThaJy1SNikxKjFTajtgMWxqXSolNTAzI2pjbmYwPVYlaiNOKFAldENFbXUoZFx0cFNHa0lHTio4ZGQsVnFwPHAlNE8kRGcyImYlJGssai1QV1ZddC1LQW5AQTYkS3IzPzppNlBCLlI4Oj5mUzxTY2tzVGRIKChFRFttbU5aXydwSiJDWkk2ZEQwWWI+SGhobk01KUZYRCU4XV8qbGtzXUYrKmQ/MzRDaTJLOkxbOGRaWloiMm1oYWZZJiFkTVw+OEdmWFxqUDREdVxxWHJJIyJyO0koVktrTyVSRScrJFBfLTtWKl9qWHA9RmlsYWtnbls1c2ZiP2VBVmdPJFZxYk8wRSQoWFYtNjE6ZkVDUUlmJjNCaWUtXy4pM0BGQSJCYCotQTc0LCgtLnNaYFRRVzddR3AlallcZj9qSl5SPz1yUm9xKFNGK1ZfbTdXQVZxNGBoUC1HQ2hmcSwxZ0dkQUktJU1mMFVHW0pNQiM6UiMibm41bj03P1FCYl9Sa2BZaUNPN0MvcmxVJDVOUWwxNVM/bj5nRnNHK0ZCNUwiUTp0Yj80L15sVHBnSCcxXWglamFib2Q8QGtkNjEqXU9oUig2QWFtYilGZEZZU2hSYj1jUVkjV2tsbV5IWVFXVigncnFIVWgscEsmWDFnKiw5RWVWaTgxOyYjdVI4dU5KQFVwNSJfRF5Zbj1qP1s3QFs0dFc6Wiw5VFxsRDE7T1MhTGtIVFVmY0sjXDBFcFpxJU5fbixXRmFMLz5rOTo+UVBUTHVnZGpiPSQ3QXBBXTtKUS9rPGhlL1xIMmVSTDlCWT9CYCZoMlFHUUw/PGs3NE88WWNIZksxWzk2bCpnRmFqZGo2TVYjMFlYJ0FuKGJYO2NSNUxHVEJqY11ETy8la3M0JHRPUmUzU2U8cikzSWlGYV1gbk44PS9wZUxMZ2B0R0ZaLzk3aV49VlJuTk0/UD4vWW4xIlUtMEE6NiFyVGRqZmg9UztbYyswOmEmdWAvTGYrJDAmODFiYWYnTlE/MTkiPDlgMGQqbEghU21SSScvLWlsMXBVRTBPVS09LmdyPGA8Iz1hblhxL3JTNE4oS0trTGRiOyJKdTZ1Kz4/UV1ZIkklRD50TGlcKSVjIk0pQ2dtV3JTU1EmKDFPRmtaOjxCNiF1WSlQbl4lT2lyUW8jbkJFXUBbcnJZbT5gcUt+PmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDE2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMTAyIDAwMDAwIG4gCjAwMDAwMDAyMDkgMDAwMDAgbiAKMDAwMDAwNDgwOSAwMDAwMCBuIAowMDAwMDA0OTIxIDAwMDAwIG4gCjAwMDAwMDUxODQgMDAwMDAgbiAKMDAwMDAwNTQ0NyAwMDAwMCBuIAowMDAwMDA1NzEwIDAwMDAwIG4gCjAwMDAwMDU5NzMgMDAwMDAgbiAKMDAwMDAwNjA0MiAwMDAwMCBuIAowMDAwMDA2MzI0IDAwMDAwIG4gCjAwMDAwMDY0MDIgMDAwMDAgbiAKMDAwMDAwODE3MSAwMDAwMCBuIAowMDAwMDEwMjg4IDAwMDAwIG4gCjAwMDAwMTIyMjkgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8Yjc1OTNhNThmNWVhNjFhMDEzNTU3MDY5YTlhZWJlNTQ+PGI3NTkzYTU4ZjVlYTYxYTAxMzU1NzA2OWE5YWViZTU0Pl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKG9wZW5zb3VyY2UpCgovSW5mbyAxMCAwIFIKL1Jvb3QgOSAwIFIKL1NpemUgMTYKPj4Kc3RhcnR4cmVmCjEzNzMxCiUlRU9GCg==";
+(function(){
+  var body=document.getElementById("invbody");
+  body.innerHTML=Object.keys(INV).map(function(k){return "<h4>"+k+"</h4><table>"+INV[k].map(function(r){return "<tr><td>"+r[0]+"</td><td>"+r[1]+"</td></tr>";}).join("")+"</table>";}).join("")+'<p style="color:var(--muted);font-size:13px;margin-top:16px">Both parties confirm the inventory at handover. Any shortcomings are covered by the landlord. The list is part of each lease agreement.</p>';
+  var m=document.getElementById("invm");
+  document.getElementById("invx").onclick=function(){m.classList.remove("on");};
+  m.addEventListener("click",function(e){if(e.target===m)m.classList.remove("on");});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape")m.classList.remove("on");});
+  document.getElementById("invopen").onclick=function(){
+    var bin=atob(INVPDF),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+    var url=URL.createObjectURL(new Blob([arr],{type:"application/pdf"}));window.open(url,"_blank");
+  };
+})();
+document.getElementById("lbp").innerHTML=LEFT;document.getElementById("lbn").innerHTML=RIGHT;
+document.getElementById("lbp").onclick=function(){lb.i=(lb.i-1+lb.list.length)%lb.list.length;lbShow();};
+document.getElementById("lbn").onclick=function(){lb.i=(lb.i+1)%lb.list.length;lbShow();};
+document.getElementById("lbx").onclick=lbClose;
+document.getElementById("lb").addEventListener("click",function(e){if(e.target.id==="lb")lbClose();});
+document.addEventListener("keydown",function(e){if(!document.getElementById("lb").classList.contains("on"))return;if(e.key==="Escape")lbClose();if(e.key==="ArrowLeft")document.getElementById("lbp").click();if(e.key==="ArrowRight")document.getElementById("lbn").click();});
+units.forEach(function(u){
+  fetch("https://router.project-osrm.org/route/v1/driving/"+site.lon+","+site.lat+";"+u.lon+","+u.lat+"?overview=full&geometries=geojson")
+   .then(function(r){return r.json();}).then(function(j){routeCache[u.n]=j.routes[0].geometry.coordinates.map(function(p){return [p[1],p[0]];});}).catch(function(){});
+});
+</script>
+</body>
+</html>
