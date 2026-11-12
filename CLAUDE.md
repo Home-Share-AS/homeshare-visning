@@ -13,7 +13,7 @@ GitHub Pages fra `main`: https://home-share-as.github.io/homeshare-visning/fyres
 ## Forhold til andre repoer
 - Tilbudssiden i salgstavla (`/tilbud/` i Home-Share-AS/homeshare-ops, `flows/flyt-01/tilbud.py` og `sider/tilbud.*`) er bygd ordrett etter Fyresdal-siden. Nye tilbud lages der, ikke her.
 - Nettsiden www.homeshare.no er Home-Share-AS/homeshare-website.
-- Bakgrunn om HomeShare og botene: Home-Share-AS/homeshare-context (`business.md`, `grokbot/felles/README.md`). Claude Code-agentens playbooks: `grokbot/claude-code/` der.
+- Bakgrunn om HomeShare og botene: Home-Share-AS/homeshare-context (`business.md`, `grokbot/felles/README.md`). Claude Code-agentens indeks og playbooks: `claude-code/INDEX.md` der.
 
 ## Regler
 - Norsk bokmål, ingen tankestreker, datoer DD.MM.YYYY, beløp i NOK.
