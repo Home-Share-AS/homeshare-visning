@@ -453,7 +453,7 @@ function row(u){
  var chips=CHIPS.map(function(c){return '<span class="chp">'+I[c[0]]+c[1]+'</span>';}).join("");
  var w=!/^No washing machine/i.test(u.laundry);
  d.innerHTML=thumbHTML(u)+'<div class="row" tabindex="0" role="button" aria-expanded="false"><span class="av">'+u.n+'</span><div style="min-width:0"><div class="nm"><span class="nmt">'+u.addr+'</span>'+copyBtn(u)+'<span class="sts s-'+u.s+'">'+STATUS[u.s]+'</span></div><div class="mt"><span>'+I.pin+u.area+'</span><span>'+I.bed+u.beds+' bedrooms</span><span>'+I.bath+u.baths+' bath'+(u.baths>1?'s':'')+'</span>'+(u.wc?'<span>'+I.wc+u.wc+' WC</span>':'')+'</div>'+(u.flag?'<div class="flag"><span class="mst wa">'+u.flag+'</span></div>':'')+'</div><span class="dt">'+I.clock+u.min+' min</span><span class="btn btn-g btn-ico chev" aria-hidden="true">'+I.chev+'</span></div>'+
- '<div class="det">'+galleryHTML(u.n)+
+ '<div class="det">'+galleryHTML(u.n)+'<div class="kv">'+I.price+'<span class="lb">Price</span><div class="vl"><span class="price">NOK '+PRICE+'</span> excl. VAT <span class="q" tabindex="0" data-tip="Per bedroom per night">'+I.q+'</span></div></div>'+
  
  '<div class="kv">'+I.incl+'<span class="lb">Included</span><div class="vl"><div class="chips">'+chips+'</div></div></div>'+
  '<div class="kv">'+I.toilet+'<span class="lb">Toilet</span><div class="vl"><span class="mst '+(u.sewer?'ok':'wa')+'">'+(u.sewer?'Sewer or septic tank':'No sewer')+'</span><div class="sub">'+u.toilet+'</div>'+(u.sewer?'':'<div class="bn">'+I.warn+'<span>Toilet servicing ('+u.fee+') is offered at a separate fixed price per bedroom per night.</span></div>')+'</div></div>'+
